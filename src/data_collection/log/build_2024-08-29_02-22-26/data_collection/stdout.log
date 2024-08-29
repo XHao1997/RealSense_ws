@@ -1,0 +1,35 @@
+running egg_info
+creating build/data_collection/data_collection.egg-info
+writing build/data_collection/data_collection.egg-info/PKG-INFO
+writing dependency_links to build/data_collection/data_collection.egg-info/dependency_links.txt
+writing entry points to build/data_collection/data_collection.egg-info/entry_points.txt
+writing requirements to build/data_collection/data_collection.egg-info/requires.txt
+writing top-level names to build/data_collection/data_collection.egg-info/top_level.txt
+writing manifest file 'build/data_collection/data_collection.egg-info/SOURCES.txt'
+reading manifest file 'build/data_collection/data_collection.egg-info/SOURCES.txt'
+writing manifest file 'build/data_collection/data_collection.egg-info/SOURCES.txt'
+running build
+running build_py
+creating /home/hao/realsense_test/src/data_collection/build/data_collection/build
+creating /home/hao/realsense_test/src/data_collection/build/data_collection/build/lib
+creating /home/hao/realsense_test/src/data_collection/build/data_collection/build/lib/data_collection
+copying data_collection/collect_rgb.py -> /home/hao/realsense_test/src/data_collection/build/data_collection/build/lib/data_collection
+copying data_collection/__init__.py -> /home/hao/realsense_test/src/data_collection/build/data_collection/build/lib/data_collection
+running install
+running install_lib
+creating /home/hao/realsense_test/src/data_collection/install/data_collection/lib/python3.10/site-packages/data_collection
+copying /home/hao/realsense_test/src/data_collection/build/data_collection/build/lib/data_collection/collect_rgb.py -> /home/hao/realsense_test/src/data_collection/install/data_collection/lib/python3.10/site-packages/data_collection
+copying /home/hao/realsense_test/src/data_collection/build/data_collection/build/lib/data_collection/__init__.py -> /home/hao/realsense_test/src/data_collection/install/data_collection/lib/python3.10/site-packages/data_collection
+byte-compiling /home/hao/realsense_test/src/data_collection/install/data_collection/lib/python3.10/site-packages/data_collection/collect_rgb.py to collect_rgb.cpython-310.pyc
+byte-compiling /home/hao/realsense_test/src/data_collection/install/data_collection/lib/python3.10/site-packages/data_collection/__init__.py to __init__.cpython-310.pyc
+running install_data
+creating /home/hao/realsense_test/src/data_collection/install/data_collection/share/ament_index
+creating /home/hao/realsense_test/src/data_collection/install/data_collection/share/ament_index/resource_index
+creating /home/hao/realsense_test/src/data_collection/install/data_collection/share/ament_index/resource_index/packages
+copying resource/data_collection -> /home/hao/realsense_test/src/data_collection/install/data_collection/share/ament_index/resource_index/packages
+copying package.xml -> /home/hao/realsense_test/src/data_collection/install/data_collection/share/data_collection
+running install_egg_info
+Copying build/data_collection/data_collection.egg-info to /home/hao/realsense_test/src/data_collection/install/data_collection/lib/python3.10/site-packages/data_collection-0.0.0-py3.10.egg-info
+running install_scripts
+Installing collect_rgb script to /home/hao/realsense_test/src/data_collection/install/data_collection/lib/data_collection
+writing list of installed files to '/home/hao/realsense_test/src/data_collection/build/data_collection/install.log'

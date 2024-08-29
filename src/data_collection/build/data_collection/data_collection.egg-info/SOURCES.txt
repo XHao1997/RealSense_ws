@@ -1,0 +1,17 @@
+package.xml
+setup.cfg
+setup.py
+build/data_collection/data_collection.egg-info/PKG-INFO
+build/data_collection/data_collection.egg-info/SOURCES.txt
+build/data_collection/data_collection.egg-info/dependency_links.txt
+build/data_collection/data_collection.egg-info/entry_points.txt
+build/data_collection/data_collection.egg-info/requires.txt
+build/data_collection/data_collection.egg-info/top_level.txt
+build/data_collection/data_collection.egg-info/zip-safe
+data_collection/__init__.py
+data_collection/collect_rgb.py
+data_collection/telekey.py
+resource/data_collection
+test/test_copyright.py
+test/test_flake8.py
+test/test_pep257.py
