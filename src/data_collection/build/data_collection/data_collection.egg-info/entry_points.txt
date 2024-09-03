@@ -1,4 +1,0 @@
-[console_scripts]
-collect_rgb = data_collection.collect_rgb:main
-telekey = data_collection.telekey:main
-

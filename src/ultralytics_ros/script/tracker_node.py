@@ -46,15 +46,14 @@ class TrackerNode(Node):
         self.declare_parameter("result_font", "Arial.ttf")
         self.declare_parameter("result_labels", True)
         self.declare_parameter("result_boxes", True)
-
         path = get_package_share_directory("ultralytics_ros")
         yolo_model = self.get_parameter("yolo_model").get_parameter_value().string_value
         self.model = YOLO(f"{path}/models/{yolo_model}")
         self.model.fuse()
-
         self.bridge = cv_bridge.CvBridge()
         self.use_segmentation = yolo_model.endswith("-seg.pt")
 
+        # define input/output topic 
         input_topic = (
             self.get_parameter("input_topic").get_parameter_value().string_value
         )
@@ -69,7 +68,10 @@ class TrackerNode(Node):
         self.result_image_pub = self.create_publisher(Image, result_image_topic, 1)
 
     def image_callback(self, msg):
-        cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        cv_image = self        # ROS2 detection result publisher
+        self.publish_result = self.get_parameter("publish_result").value
+        self.detection_pub = self.create_publisher(Detection2DArray, 'detection', 10)
+        self.detection_result = Detection2DArray().bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
         conf_thres = self.get_parameter("conf_thres").get_parameter_value().double_value
         iou_thres = self.get_parameter("iou_thres").get_parameter_value().double_value
