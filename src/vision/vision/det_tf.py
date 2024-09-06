@@ -4,7 +4,7 @@ from rclpy.node import Node
 from tf2_ros import TransformBroadcaster, TransformStamped
 from geometry_msgs.msg import Point
 from ultralytics_ros.msg import YoloResult
-
+import numpy as np
 class DetTF(Node):
     def __init__(self):
         super().__init__('det_tf')
@@ -29,6 +29,8 @@ class DetTF(Node):
 
 
         self.get_logger().info(f'My log message {msg.detections}', skip_first=True, throttle_duration_sec=1.0)
+
+        np.save('det_msg',msg.detections)
 
         for name, pos in objs.items():
             pos:Point
