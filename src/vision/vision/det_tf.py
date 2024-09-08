@@ -4,7 +4,7 @@ from rclpy.node import Node
 from tf2_ros import TransformBroadcaster, TransformStamped
 from geometry_msgs.msg import Point
 from ultralytics_ros.msg import YoloResult
-import numpy as np
+
 class DetTF(Node):
     def __init__(self):
         super().__init__('det_tf')
@@ -42,9 +42,9 @@ class DetTF(Node):
             t.header.frame_id = 'camera_color_optical_frame'
             t.child_frame_id = name
 
-            t.transform.translation.x = pos.x
-            t.transform.translation.y = pos.y
-            t.transform.translation.z = 10.0
+            t.transform.translation.x = pos.x/1000
+            t.transform.translation.y = pos.y/1000
+            t.transform.translation.z = 0.10
             self.get_logger().info(f'My log message {pos}', skip_first=True, throttle_duration_sec=1.0)
             t.transform.rotation.w = 1.0
             t.transform.rotation.x = 0.0

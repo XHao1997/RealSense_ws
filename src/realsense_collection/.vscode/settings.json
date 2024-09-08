@@ -9,7 +9,8 @@
         "/home/hao/ws_moveit2/install/launch_param_builder/lib/python3.10/site-packages",
         "/home/hao/ws_moveit2/install/generate_parameter_library_py/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
-        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        "/opt/ros/humble/local/lib/python3.10/dist-packages",
+        "/home/wx_pc/anaconda3/envs/yolo/lib/python3.10/site-packages",
     ],
     "python.analysis.extraPaths": [
         "/home/hao/ws_moveit2/install/moveit_configs_utils/lib/python3.10/site-packages",
@@ -21,6 +22,7 @@
         "/home/hao/ws_moveit2/install/launch_param_builder/lib/python3.10/site-packages",
         "/home/hao/ws_moveit2/install/generate_parameter_library_py/lib/python3.10/site-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
-        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+        "/opt/ros/humble/local/lib/python3.10/dist-packages",
+        "/home/wx_pc/anaconda3/envs/yolo/lib/python3.10/site-packages",
     ]
 }

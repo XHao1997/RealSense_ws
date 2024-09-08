@@ -18,14 +18,22 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import cv_bridge
-import numpy as np
 import rclpy
 from ament_index_python.packages import get_package_share_directory
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from ultralytics import YOLO
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
 from ultralytics_ros.msg import YoloResult
+
+# address path 
+import sys
+from pathlib import Path
+# add conda env path
+sys.path.append('/home/wx_pc/anaconda3/envs/yolo/lib/python3.10/site-packages')
+from ultralytics import YOLO
+import numpy as np
+
+
 
 class TrackerNode(Node):
     def __init__(self):
