@@ -18,19 +18,21 @@ class DetTF(Node):
         self.tf_broadcaster = TransformBroadcaster(self)
 
     def det_callback(self, msg:YoloResult):
-        cls_name = 'cube'
         objs = {}
-        cnt = 1
-        for i, det in enumerate(msg.detections.detections):
-            if det.id == cls_name:
-                objs[cls_name+str(cnt)] = det.results[0].pose.pose.position
-                cnt += 1
-        
+        # cnt = 1
+        # for i, det in enumerate(msg.detections):
+        #     if det.id == cls_name:
+        #         objs[cls_name+str(cnt)] = det.results[0].pose.pose.position
+        #         cnt += 1
+        detections = msg.detections.detections
+        self.get_logger().info(f'My log message {detections}', skip_first=True, throttle_duration_sec=1.0)
+
+        for i in range(len(detections)):
+            objs[detections[i].results[0].hypothesis.class_id] = detections[i].bbox.center.position
 
 
-        self.get_logger().info(f'My log message {msg.detections}', skip_first=True, throttle_duration_sec=1.0)
-
-        np.save('det_msg',msg.detections)
+        self.get_logger().info(f'My log message {objs}', skip_first=True, throttle_duration_sec=1.0)
+        # np.save('det_msg',msg.detections)
 
         for name, pos in objs.items():
             pos:Point
@@ -42,7 +44,7 @@ class DetTF(Node):
 
             t.transform.translation.x = pos.x
             t.transform.translation.y = pos.y
-            t.transform.translation.z = pos.z
+            t.transform.translation.z = 10.0
             self.get_logger().info(f'My log message {pos}', skip_first=True, throttle_duration_sec=1.0)
             t.transform.rotation.w = 1.0
             t.transform.rotation.x = 0.0

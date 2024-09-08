@@ -17,16 +17,20 @@ class ImageSaver(Node):
         
         # Declare and get the parameter for the image topic
         self.declare_parameter('image_topic', 'camera/camera/color/image_raw')
+        self.declare_parameter('depth_topic', 'camera/camera/aligned_depth_to_color/image_raw')
         self.declare_parameter('telekey_topic', '/turtle1/cmd_vel')
 
-        image_topic = self.get_parameter('image_topic').get_parameter_value().string_value            
+        image_topic = self.get_parameter('image_topic').get_parameter_value().string_value     
+        depth_topic = self.get_parameter('depth_topic').get_parameter_value().string_value            
         telekey_topic = self.get_parameter('telekey_topic').get_parameter_value().string_value
         # Subscribe to the image and telekey topics
         self.create_subscription(Image, image_topic, self.image_callback, 10)
+        self.create_subscription(Image, depth_topic, self.depth_callback, 10)
         self.create_subscription(Twist, telekey_topic, self.telekey_callback, 10)
         
         # Initialize variables
         self.cv_image = None
+        self.depth_image = None
         self.image_save_directory = os.getcwd()+'/src/data'
         if not os.path.exists(self.image_save_directory):
             os.makedirs(self.image_save_directory)
@@ -41,13 +45,19 @@ class ImageSaver(Node):
         except CvBridgeError as e:
             self.get_logger().error(f"CvBridge error: {str(e)}")
 
+    def depth_callback(self,msg):
+        self.depth_image = self.bridge.imgmsg_to_cv2(msg, 'passthrough')
+
     def telekey_callback(self, msg: Twist):
         if msg is not None:
             self.get_logger().info(f"Key Pressed!")
             if self.cv_image is not None:
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                filename = os.path.join(self.image_save_directory, f"image_{timestamp}.png")
-                cv2.imwrite(filename, self.cv_image)
+                filename = [os.path.join(self.image_save_directory, f"rgb_{timestamp}.png"),
+                            os.path.join(self.image_save_directory, f"depth_{timestamp}.png")]
+                cv2.imwrite(filename[0], self.cv_image)
+                cv2.imwrite(filename[1], self.depth_image)
+
                 self.get_logger().info(f"Image saved: {filename}")
             else:
                 self.get_logger().warn("No image received yet to save.")

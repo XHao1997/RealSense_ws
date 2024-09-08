@@ -39,7 +39,7 @@ class TrackerNode(Node):
         self.declare_parameter("max_det", 300)
         self.declare_parameter("classes", list(range(80)))
         self.declare_parameter("tracker", "bytetrack.yaml")
-        self.declare_parameter("device", "cpu")
+        self.declare_parameter("device", "cuda:0")
         self.declare_parameter("result_conf", True)
         self.declare_parameter("result_line_width", 1)
         self.declare_parameter("result_font_size", 1)
@@ -68,10 +68,7 @@ class TrackerNode(Node):
         self.result_image_pub = self.create_publisher(Image, result_image_topic, 1)
 
     def image_callback(self, msg):
-        cv_image = self        # ROS2 detection result publisher
-        self.publish_result = self.get_parameter("publish_result").value
-        self.detection_pub = self.create_publisher(Detection2DArray, 'detection', 10)
-        self.detection_result = Detection2DArray().bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
 
         conf_thres = self.get_parameter("conf_thres").get_parameter_value().double_value
         iou_thres = self.get_parameter("iou_thres").get_parameter_value().double_value

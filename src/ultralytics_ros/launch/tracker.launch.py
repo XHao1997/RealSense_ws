@@ -17,7 +17,7 @@ def generate_launch_description():
         DeclareLaunchArgument('iou_thres', default_value='0.45'),
         DeclareLaunchArgument('max_det', default_value='300'),
         DeclareLaunchArgument('tracker', default_value='bytetrack.yaml'),
-        DeclareLaunchArgument('device', default_value=''),
+        DeclareLaunchArgument('device', default_value='cpu'),
         DeclareLaunchArgument('result_conf', default_value='true'),
         DeclareLaunchArgument('result_line_width', default_value='1'),
         DeclareLaunchArgument('result_font_size', default_value='1'),
