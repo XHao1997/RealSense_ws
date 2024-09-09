@@ -15,7 +15,15 @@ def generate_launch_description():
     rs_camera = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory(realsense_package_name), 'launch', 'rs_launch.py'
-        )]), launch_arguments={'align_depth.enable': 'true'}.items()
+        )]), launch_arguments={
+            'align_depth.enable': 'true',
+                'depth_module.depth_profile': '640x480x30',
+                'depth_module.infra_profile': '640x480x30', 
+                'rgb_camera.color_profile': '640x480x30',
+                'enable_depth': 'True',
+                'enable_color': 'True',
+                'clip_distance': '2.0' 
+            }.items()
     )
     
     # Launch them all!
