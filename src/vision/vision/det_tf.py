@@ -28,7 +28,7 @@ class DetTF(Node):
         self.get_logger().info(f'My log message {detections}', skip_first=True, throttle_duration_sec=1.0)
 
         for i in range(len(detections)):
-            objs[detections[i].results[0].hypothesis.class_id] = detections[i].bbox.center.position
+            objs[detections[i].results[0].hypothesis.class_id+f"{i}"] = detections[i].bbox.center.position
 
 
         self.get_logger().info(f'My log message {objs}', skip_first=True, throttle_duration_sec=1.0)

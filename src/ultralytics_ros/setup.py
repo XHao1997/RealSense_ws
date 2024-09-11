@@ -14,9 +14,9 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.py'))),
-                (os.path.join('share', package_name, 'msg'), glob('msg/*.msg')),
-
+        (os.path.join('share', package_name, 'msg'), glob('msg/*.msg')),
     ],
+
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='hao',

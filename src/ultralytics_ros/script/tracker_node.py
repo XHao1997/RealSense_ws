@@ -38,7 +38,7 @@ import numpy as np
 class TrackerNode(Node):
     def __init__(self):
         super().__init__("tracker_node")
-        self.declare_parameter("yolo_model", "yolov8n.pt")
+        self.declare_parameter("yolo_model", "best.pt")
         self.declare_parameter("input_topic", "camera/camera/color/image_raw")
         self.declare_parameter("result_topic", "yolo_result")
         self.declare_parameter("result_image_topic", "yolo_image")
@@ -56,7 +56,7 @@ class TrackerNode(Node):
         self.declare_parameter("result_boxes", True)
         path = get_package_share_directory("ultralytics_ros")
         yolo_model = self.get_parameter("yolo_model").get_parameter_value().string_value
-        self.model = YOLO(f"{path}/models/{yolo_model}")
+        self.model = YOLO(f"src/ultralytics_ros/models/{yolo_model}")
         self.model.fuse()
         self.bridge = cv_bridge.CvBridge()
         self.use_segmentation = yolo_model.endswith("-seg.pt")

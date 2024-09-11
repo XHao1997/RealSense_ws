@@ -9,7 +9,7 @@ def generate_launch_description():
         # Declare launch arguments
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('debug', default_value='false'),
-        DeclareLaunchArgument('yolo_model', default_value='yolov8m-seg.pt'),
+        DeclareLaunchArgument('yolo_model', default_value='best.pt'),
         DeclareLaunchArgument('input_topic', default_value='camera/camera/color/image_raw'),
         DeclareLaunchArgument('result_topic', default_value='/yolo_result'),
         DeclareLaunchArgument('result_image_topic', default_value='/yolo_image'),
