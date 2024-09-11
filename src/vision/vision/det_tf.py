@@ -36,7 +36,6 @@ class DetTF(Node):
 
         for name, pos in objs.items():
             pos:Point
-
             t = TransformStamped()
             t.header.stamp = self.get_clock().now().to_msg()
             t.header.frame_id = 'camera_color_optical_frame'
