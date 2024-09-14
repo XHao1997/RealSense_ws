@@ -26,19 +26,23 @@ from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithP
 from ultralytics_ros.msg import YoloResult
 
 # address path 
+import os
 import sys
 from pathlib import Path
 # add conda env path
-sys.path.append('/home/wx_pc/anaconda3/envs/yolo/lib/python3.10/site-packages')
+sys.path.append(str(Path.home())+ 'anaconda3/envs/yolo/lib/python3.10/site-packages')
+# import packages from conda environment
 from ultralytics import YOLO
-import numpy as np
-
-
+from ultralytics import SAM
+import numpy as np # numpy version:1.23.5
+# import functions from utils
+import utils.postprocessing
 
 class TrackerNode(Node):
     def __init__(self):
         super().__init__("tracker_node")
         self.declare_parameter("yolo_model", "best.pt")
+        self.declare_parameter("sam_model", "sam_l.pt")
         self.declare_parameter("input_topic", "camera/camera/color/image_raw")
         self.declare_parameter("result_topic", "yolo_result")
         self.declare_parameter("result_image_topic", "yolo_image")
@@ -56,8 +60,9 @@ class TrackerNode(Node):
         self.declare_parameter("result_boxes", True)
         path = get_package_share_directory("ultralytics_ros")
         yolo_model = self.get_parameter("yolo_model").get_parameter_value().string_value
-        self.model = YOLO(f"src/ultralytics_ros/models/{yolo_model}")
-        self.model.fuse()
+        self.yolo_model = YOLO(f"src/ultralytics_ros/weights/{yolo_model}")
+        self.yolo_model.fuse()
+        self.sam_model = SAM(f"src/ultralytics_ros/weights/{yolo_model}")
         self.bridge = cv_bridge.CvBridge()
         self.use_segmentation = yolo_model.endswith("-seg.pt")
 
@@ -71,6 +76,7 @@ class TrackerNode(Node):
         result_image_topic = (
             self.get_parameter("result_image_topic").get_parameter_value().string_value
         )
+        self.srv = self.create_service(AddTwoInts, 'segment_mask', self.create_segmentation_masks)
         self.create_subscription(Image, input_topic, self.image_callback, 1)
         self.results_pub = self.create_publisher(YoloResult, result_topic, 1)
         self.result_image_pub = self.create_publisher(Image, result_image_topic, 1)
@@ -86,7 +92,7 @@ class TrackerNode(Node):
         )
         tracker = self.get_parameter("tracker").get_parameter_value().string_value
         device = self.get_parameter("device").get_parameter_value().string_value or None
-        results = self.model.track(
+        results = self.yolo_model.track(
             source=cv_image,
             conf=conf_thres,
             iou=iou_thres,
@@ -153,24 +159,33 @@ class TrackerNode(Node):
             labels=result_labels,
             boxes=result_boxes,
         )
-        result_image_msg = self.bridge.cv2_to_imgmsg(plotted_image, encoding="bgr8")
+        result_image_msg = self.bridge.cv2_to_imgmsg(
+            plotted_image, encoding="bgr8")
         return result_image_msg
 
     def create_segmentation_masks(self, results):
         masks_msg = []
-        for result in results:
-            if hasattr(result, "masks") and result.masks is not None:
-                for mask_tensor in result.masks:
-                    mask_numpy = (
-                        np.squeeze(mask_tensor.data.to("cpu").detach().numpy()).astype(
-                            np.uint8
-                        )
-                        * 255
-                    )
-                    mask_image_msg = self.bridge.cv2_to_imgmsg(
-                        mask_numpy, encoding="mono8"
-                    )
-                    masks_msg.append(mask_image_msg)
+        bbox = results[0].bbox
+        bbox_center = utils.postprocessing.get_incircle_bbox(
+            bbox)['incircle_list'] 
+        sam_result = self.sam_model.predict(
+            rgb_img, 
+            points=bbox_center, bboxes=bbox, labels=[1])[0]
+        result = utils.postprocessing.get_sam_mask(sam_result)
+        masks_msg.append(result.combined_mask)
+        # for result in results:
+        #     if hasattr(result, "masks") and result.masks is not None:
+        #         for mask_tensor in result.masks:
+        #             mask_numpy = (
+        #                 np.squeeze(mask_tensor.data.to("cpu").detach().numpy()).astype(
+        #                     np.uint8
+        #                 )
+        #                 * 255
+        #             )
+        #             mask_image_msg = self.bridge.cv2_to_imgmsg(
+        #                 mask_numpy, encoding="mono8"
+        #             )
+        #             masks_msg.append(mask_image_msg)
         return masks_msg
 
 
