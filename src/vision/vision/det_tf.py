@@ -19,19 +19,16 @@ class DetTF(Node):
 
     def det_callback(self, msg:YoloResult):
         objs = {}
-        # cnt = 1
-        # for i, det in enumerate(msg.detections):
-        #     if det.id == cls_name:
-        #         objs[cls_name+str(cnt)] = det.results[0].pose.pose.position
-        #         cnt += 1
         detections = msg.detections.detections
-        self.get_logger().info(f'My log message {detections}', skip_first=True, throttle_duration_sec=1.0)
+        self.get_logger().info(f'My log message {detections}', 
+                               skip_first=True, throttle_duration_sec=1.0)
 
         for i in range(len(detections)):
             objs[detections[i].results[0].hypothesis.class_id+f"{i}"] = detections[i].bbox.center.position
 
 
-        self.get_logger().info(f'My log message {objs}', skip_first=True, throttle_duration_sec=1.0)
+        self.get_logger().info(f'My log message {objs}', 
+                               skip_first=True, throttle_duration_sec=1.0)
         # np.save('det_msg',msg.detections)
 
         for name, pos in objs.items():

@@ -29,14 +29,14 @@ from ultralytics_ros.msg import YoloResult
 import os
 import sys
 from pathlib import Path
-# add conda env path
-sys.path.append(str(Path.home())+ 'anaconda3/envs/yolo/lib/python3.10/site-packages')
-# import packages from conda environment
 from ultralytics import YOLO
 from ultralytics import SAM
 import numpy as np # numpy version:1.23.5
 # import functions from utils
 import utils.postprocessing
+
+
+
 
 class TrackerNode(Node):
     def __init__(self):
@@ -60,9 +60,10 @@ class TrackerNode(Node):
         self.declare_parameter("result_boxes", True)
         path = get_package_share_directory("ultralytics_ros")
         yolo_model = self.get_parameter("yolo_model").get_parameter_value().string_value
+        sam_model = self.get_parameter("sam_model").get_parameter_value().string_value
         self.yolo_model = YOLO(f"src/ultralytics_ros/weights/{yolo_model}")
         self.yolo_model.fuse()
-        self.sam_model = SAM(f"src/ultralytics_ros/weights/{yolo_model}")
+        self.sam_model = SAM(f"src/ultralytics_ros/weights/{sam_model}")
         self.bridge = cv_bridge.CvBridge()
         self.use_segmentation = yolo_model.endswith("-seg.pt")
 
@@ -76,10 +77,9 @@ class TrackerNode(Node):
         result_image_topic = (
             self.get_parameter("result_image_topic").get_parameter_value().string_value
         )
-        self.srv = self.create_service(AddTwoInts, 'segment_mask', self.create_segmentation_masks)
-        self.create_subscription(Image, input_topic, self.image_callback, 1)
-        self.results_pub = self.create_publisher(YoloResult, result_topic, 1)
-        self.result_image_pub = self.create_publisher(Image, result_image_topic, 1)
+        self.create_subscription(Image, input_topic, self.image_callback, 5)
+        self.results_pub = self.create_publisher(YoloResult, result_topic, 5)
+        self.result_image_pub = self.create_publisher(Image, result_image_topic, 5)
 
     def image_callback(self, msg):
         cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
@@ -117,6 +117,7 @@ class TrackerNode(Node):
             self.result_image_pub.publish(yolo_result_image_msg)
 
     def create_detections_array(self, results):
+
         detections_msg = Detection2DArray()
         bounding_box = results[0].boxes.xywh
         classes = results[0].boxes.cls
@@ -163,7 +164,7 @@ class TrackerNode(Node):
             plotted_image, encoding="bgr8")
         return result_image_msg
 
-    def create_segmentation_masks(self, results):
+    def create_segmentation_masks(self, rgb_img, results):
         masks_msg = []
         bbox = results[0].bbox
         bbox_center = utils.postprocessing.get_incircle_bbox(
