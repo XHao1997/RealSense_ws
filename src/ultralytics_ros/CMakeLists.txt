@@ -17,13 +17,14 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   std_msgs
   vision_msgs
 )
+
 install(PROGRAMS
   script/tracker_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(PROGRAMS
-  script/utils/postprocessing.py  
+  script/utils/postprocessing.py
   DESTINATION lib/${PROJECT_NAME}/utils/
 )
 
@@ -31,4 +32,5 @@ install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}/
 )
+
 ament_package()

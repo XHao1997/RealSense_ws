@@ -100,8 +100,8 @@ def get_sam_mask(sam_result)->dict:
         dict: a dictionary including sperate masks and combined
     """
     result = {}
-    result['combined_mask'] = reduce(lambda x, y: x + y, sam_result.masks.data.cpu().numpy())
-    result['masks'] = sam_result.masks.data.cpu().numpy()
+    result['combined_mask'] = reduce(lambda x, y: x + y, sam_result[0].masks.data.cpu().numpy())
+    result['masks'] = sam_result[0].masks.data.cpu().numpy()
     return result
 
 def visualise_pc(pc,is_numpy=True):
@@ -134,3 +134,22 @@ def mask_to_pc(mask:np.ndarray, depth_img, depth_scale=0.0010000000474974513):
                     seg_pc.append(result)
     
     return seg_pc
+
+def convert_mask_to_3_channel(mask):
+    """
+    Converts a single-channel mask to a 3-channel RGB image.
+    
+    Args:
+        mask (numpy.ndarray): Single-channel (grayscale) mask.
+        
+    Returns:
+        numpy.ndarray: 3-channel (RGB) mask.
+    """
+    # Ensure the input is a single-channel mask
+    if len(mask.shape) == 2:
+        # Convert single-channel mask to a 3-channel RGB mask by duplicating the single channel
+        mask_rgb = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+    else:
+        raise ValueError("Input mask is not single-channel")
+    
+    return mask_rgb

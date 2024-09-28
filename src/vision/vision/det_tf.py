@@ -4,7 +4,7 @@ from rclpy.node import Node
 from tf2_ros import TransformBroadcaster, TransformStamped
 from geometry_msgs.msg import Point
 from ultralytics_ros.msg import YoloResult
-
+import ultralytics
 class DetTF(Node):
     def __init__(self):
         super().__init__('det_tf')

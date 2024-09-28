@@ -24,19 +24,14 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
 from ultralytics_ros.msg import YoloResult
-
 # address path 
 import os
 import sys
 from pathlib import Path
 from ultralytics import YOLO
-from ultralytics import SAM
-import numpy as np # numpy version:1.23.5
+import numpy as np 
 # import functions from utils
 import utils.postprocessing
-
-
-
 
 class TrackerNode(Node):
     def __init__(self):
@@ -60,10 +55,8 @@ class TrackerNode(Node):
         self.declare_parameter("result_boxes", True)
         path = get_package_share_directory("ultralytics_ros")
         yolo_model = self.get_parameter("yolo_model").get_parameter_value().string_value
-        sam_model = self.get_parameter("sam_model").get_parameter_value().string_value
         self.yolo_model = YOLO(f"src/ultralytics_ros/weights/{yolo_model}")
         self.yolo_model.fuse()
-        self.sam_model = SAM(f"src/ultralytics_ros/weights/{sam_model}")
         self.bridge = cv_bridge.CvBridge()
         self.use_segmentation = yolo_model.endswith("-seg.pt")
 
@@ -174,21 +167,7 @@ class TrackerNode(Node):
             points=bbox_center, bboxes=bbox, labels=[1])[0]
         result = utils.postprocessing.get_sam_mask(sam_result)
         masks_msg.append(result.combined_mask)
-        # for result in results:
-        #     if hasattr(result, "masks") and result.masks is not None:
-        #         for mask_tensor in result.masks:
-        #             mask_numpy = (
-        #                 np.squeeze(mask_tensor.data.to("cpu").detach().numpy()).astype(
-        #                     np.uint8
-        #                 )
-        #                 * 255
-        #             )
-        #             mask_image_msg = self.bridge.cv2_to_imgmsg(
-        #                 mask_numpy, encoding="mono8"
-        #             )
-        #             masks_msg.append(mask_image_msg)
         return masks_msg
-
 
 def main(args=None):
     rclpy.init(args=args)
