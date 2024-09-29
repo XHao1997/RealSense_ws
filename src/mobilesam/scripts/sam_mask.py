@@ -13,7 +13,6 @@ import cv2
 import matplotlib.pyplot as plt
 
 class SAM_Node(Node):
-
     def __init__(self):
         super().__init__('SAM_node')
         self.declare_parameter("sam_model", "sam_l.pt")
@@ -36,20 +35,30 @@ class SAM_Node(Node):
         self.subscriber_2 = Subscriber(self, YoloResult, input_topic_2)
         self.model = SAM(f"src/ultralytics_ros/weights/{sam_model}")
         # ApproximateTimeSynchronizer will call the callback only when both messages are available
-        self.ts = ApproximateTimeSynchronizer([self.subscriber_1, self.subscriber_2], queue_size=10, slop=0.1)
+        self.ts = ApproximateTimeSynchronizer([self.subscriber_1, self.subscriber_2], queue_size=10, slop=0.3)
         self.ts.registerCallback(self.subscriber_callback)
         self.results_pub = self.create_publisher(Image, result_topic, 5)
         self.bridge = cv_bridge.CvBridge()
         
+
+        # To store the latest synchronized messages
+        self.latest_image = None
+        self.latest_yolo_result = None
+        self.result = None
+        # Timer to publish at 3 Hz (i.e., every 1/3 seconds)
+        self.timer = self.create_timer(1.0 / 1.0, self.timer_callback)  # 3 Hz
+        
     def subscriber_callback(self, msg1, msg2):
+        """Store the latest synchronized messages"""
+        self.latest_image = msg1
+        self.latest_yolo_result = msg2
         objs = {}
         # Convert the ROS image (msg1) to an OpenCV image
-        cv_image = self.bridge.imgmsg_to_cv2(msg1, desired_encoding="bgr8")
-        detections = msg2.detections.detections
+        cv_image = self.bridge.imgmsg_to_cv2(self.latest_image, desired_encoding="bgr8")
+        detections = self.latest_yolo_result.detections.detections
         for i in range(len(detections)):
             pose_list = [detections[i].bbox.center.position,detections[i].bbox.size_x,detections[i].bbox.size_y]
             objs[detections[i].results[0].hypothesis.class_id+f"{i}"]= pose_list
-            
         sam_mask = np.zeros([480, 640]).astype(np.uint8)
         sam_pose = []
         sam_bbox = []
@@ -65,26 +74,28 @@ class SAM_Node(Node):
             sam_mask = postprocessing.shrunk_mask(sam_mask)
         # Ensure the mask is of type uint8 for further processing
         # Convert single-channel mask to 3-channel RGB if necessary
+        
         if len(sam_mask.shape) == 2:
             sam_mask_rgb = cv2.cvtColor(sam_mask, cv2.COLOR_GRAY2RGB)
         else:
             sam_mask_rgb = sam_mask
         covered_img = cv2.bitwise_and(cv_image,cv_image,mask=sam_mask)
-
         # Convert the mask back to a ROS Image message
-        msg_mask = self.bridge.cv2_to_imgmsg(covered_img, encoding="bgr8")
-        self.results_pub.publish(msg_mask)
+        sam_msg = self.bridge.cv2_to_imgmsg(covered_img, encoding="bgr8")
+        sam_msg.header.stamp = self.get_clock().now().to_msg()
+        self.result = sam_msg
+        
+    def timer_callback(self):
+        self.results_pub.publish(self.result)
 
 def pose2d_to_xyxy_bbox(pose, width, height):
     # Extract the center from the Pose2D
     x_center, y_center = pose.x, pose.y
-
     # Calculate xmin, ymin, xmax, ymax
     xmin = x_center - width / 2
     ymin = y_center - height / 2
     xmax = x_center + width / 2
     ymax = y_center + height / 2
-
     # Return bbox in xyxy format (xmin, ymin, xmax, ymax)
     return [xmin, ymin, xmax, ymax]
 
@@ -92,13 +103,11 @@ def main(args=None):
     rclpy.init(args=args)
     sam_sub = SAM_Node()
     rclpy.spin(sam_sub)
-
     # Destroy the node explicitly
     # (optional - otherwise it will be done automatically
     # when the garbage collector destroys the node object)
-    minimal_publisher.destroy_node()
+    sam_sub.destroy_node()
     rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()

@@ -1,63 +1,64 @@
 # Subscribe Detection result and broadcast tf
 import rclpy
 from rclpy.node import Node
+from sensor_msgs.msg import Image
 from tf2_ros import TransformBroadcaster, TransformStamped
+from message_filters import Subscriber, ApproximateTimeSynchronizer
+from message_filters import TimeSynchronizer, Subscriber
 from geometry_msgs.msg import Point
+from .utils import postprocessing
 from ultralytics_ros.msg import YoloResult
 import ultralytics
+import cv_bridge
+import numpy as np
 class DetTF(Node):
     def __init__(self):
         super().__init__('det_tf')
-        self.subscription = self.create_subscription(
-            YoloResult,
-            'yolo_result',
-            self.det_callback,
-            10)
-        self.subscription  # prevent unused variable warning
 
+        self.declare_parameter("sam_topic", "sam_result")
+        self.declare_parameter("depth_topic", "camera/camera/aligned_depth_to_color/image_raw")
+        # define input/output topic 
+        sam_topic = (
+            self.get_parameter("sam_topic").get_parameter_value().string_value
+        )
+        depth_topic = (
+            self.get_parameter("depth_topic").get_parameter_value().string_value
+        )
+        
+        self.sub1 = Subscriber(self, Image, sam_topic)
+        self.sub2 = Subscriber(self, Image, depth_topic)
+
+        # ApproximateTimeSynchronizer will call the callback only when both messages are available
+        self.ts = ApproximateTimeSynchronizer([self.sub1, self.sub2], queue_size=1, slop=0.5)
+        self.ts.registerCallback(self.det_callback)
+        self.bridge = cv_bridge.CvBridge()
         self.tf_broadcaster = TransformBroadcaster(self)
+        self.get_logger().info('Publishing1: ""')
+        self.results_pub = self.create_publisher(Image, "det", 10)
+        
 
-    def det_callback(self, msg:YoloResult):
-        objs = {}
-        detections = msg.detections.detections
-        self.get_logger().info(f'My log message {detections}', 
-                               skip_first=True, throttle_duration_sec=1.0)
-
-        for i in range(len(detections)):
-            objs[detections[i].results[0].hypothesis.class_id+f"{i}"] = detections[i].bbox.center.position
-
-
-        self.get_logger().info(f'My log message {objs}', 
-                               skip_first=True, throttle_duration_sec=1.0)
-        # np.save('det_msg',msg.detections)
-
-        for name, pos in objs.items():
-            pos:Point
-            t = TransformStamped()
-            t.header.stamp = self.get_clock().now().to_msg()
-            t.header.frame_id = 'camera_color_optical_frame'
-            t.child_frame_id = name
-
-            t.transform.translation.x = pos.x/1000
-            t.transform.translation.y = pos.y/1000
-            t.transform.translation.z = 0.10
-            self.get_logger().info(f'My log message {pos}', skip_first=True, throttle_duration_sec=1.0)
-            t.transform.rotation.w = 1.0
-            t.transform.rotation.x = 0.0
-            t.transform.rotation.y = 0.0
-            t.transform.rotation.z = 0.0
-
-            self.tf_broadcaster.sendTransform(t)
+    def det_callback(self, msg1:Image, msg2:Image):
+        
+        depth_img = self.bridge.imgmsg_to_cv2(msg1, desired_encoding='bgr8')
+        mask = self.bridge.imgmsg_to_cv2(msg2, desired_encoding='passthrough')
+        if np.max(mask)!=0:
+            self.get_logger().info("hi")
+            pc = postprocessing.mask_to_pc(mask, depth_img)
+            centroid_point, ori = postprocessing.generate_pc_pose(pc)
+        
+        # if len(pc)!=0:
+        #     centroid_point, ori = postprocessing.generate_pc_pose(pc)
+        #     self.get_logger().info(centroid_point)
+        
+        # self.results_pub.publish(msg2)
+        return
 
 def main(args=None):
     rclpy.init(args=args)
-
-    det_tf = DetTF()
-
-    try:
-        rclpy.spin(det_tf)
-    except KeyboardInterrupt:
-        pass
-
-    det_tf.destroy_node()
+    det = DetTF()
+    rclpy.spin(det)
+    # Destroy the node explicitly
+    # optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    det.destroy_node()
     rclpy.shutdown()

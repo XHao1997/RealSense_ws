@@ -2,6 +2,7 @@ import copy
 import numpy as np
 import cv2
 from functools import reduce
+from sklearn.preprocessing import StandardScaler
 def find_bbox_center(bbox:list)->list:
     """find bbox center
 
@@ -100,8 +101,8 @@ def get_sam_mask(sam_result)->dict:
         dict: a dictionary including sperate masks and combined
     """
     result = {}
-    result['combined_mask'] = reduce(lambda x, y: x + y, sam_result[0].masks.data.cpu().numpy())
-    result['masks'] = sam_result[0].masks.data.cpu().numpy()
+    result['combined_mask'] = reduce(lambda x, y: x + y, sam_result.masks.data.cpu().numpy())
+    result['masks'] = sam_result.masks.data.cpu().numpy()
     return result
 
 def visualise_pc(pc,is_numpy=True):
@@ -117,7 +118,17 @@ def visualise_pc(pc,is_numpy=True):
     o3d.visualization.draw_geometries([pcd, origin])
     return
 
-def mask_to_pc(mask:np.ndarray, depth_img, depth_scale=0.0010000000474974513):
+def mask_to_pc(mask:np.ndarray, depth_img, depth_scale=0.0010000000474974513)->np.ndarray:
+    """_summary_
+
+    Args:
+        mask (np.ndarray): _description_
+        depth_img (_type_): _description_
+        depth_scale (float, optional): _description_. Defaults to 0.0010000000474974513.
+
+    Returns:
+        list: _description_
+    """
     seg_pc=[]
     # Iterate over each pixel in the mask
     for y in range(mask.shape[0]):
@@ -133,24 +144,23 @@ def mask_to_pc(mask:np.ndarray, depth_img, depth_scale=0.0010000000474974513):
                     )
                     seg_pc.append(result)
     
-    return seg_pc
+    return np.asarray(seg_pc)
 
-def convert_mask_to_3_channel(mask):
-    """
-    Converts a single-channel mask to a 3-channel RGB image.
-    
+def generate_pc_pose(pc:np.ndarray)->(list,np.ndarray):
+    """This function generate the grasp pose from point cloud,
+    which includes cenroid point and the orientation pose
+
     Args:
-        mask (numpy.ndarray): Single-channel (grayscale) mask.
-        
-    Returns:
-        numpy.ndarray: 3-channel (RGB) mask.
-    """
-    # Ensure the input is a single-channel mask
-    if len(mask.shape) == 2:
-        # Convert single-channel mask to a 3-channel RGB mask by duplicating the single channel
-        mask_rgb = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-    else:
-        raise ValueError("Input mask is not single-channel")
-    
-    return mask_rgb
+        pc (np.ndarray): the interest object point cloud
 
+    Returns:
+        centroid pont, pose: centroid point of the object and grasp pose
+    """
+    std_scaler = StandardScaler()
+    std_scaler.fit(pc)
+    x_std = std_scaler.transform(pc)
+    pca = PCA(n_components=3)
+    pca.fit_transform(x_std)
+    centroid_point = std_scaler.mean_
+    pose = pca.components_
+    return centroid_point, pose
