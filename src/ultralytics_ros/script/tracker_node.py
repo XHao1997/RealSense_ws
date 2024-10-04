@@ -41,11 +41,11 @@ class TrackerNode(Node):
         self.declare_parameter("input_topic", "camera/camera/color/image_raw")
         self.declare_parameter("result_topic", "yolo_result")
         self.declare_parameter("result_image_topic", "yolo_image")
-        self.declare_parameter("conf_thres", 0.25)
-        self.declare_parameter("iou_thres", 0.45)
+        self.declare_parameter("conf_thres", 0.3)
+        self.declare_parameter("iou_thres", 0.5)
         self.declare_parameter("max_det", 300)
-        self.declare_parameter("classes", list(range(80)))
-        self.declare_parameter("tracker", "bytetrack.yaml")
+        self.declare_parameter("classes", list(range(1)))
+        self.declare_parameter("tracker", "botsort.yaml")
         self.declare_parameter("device", "cuda:0")
         self.declare_parameter("result_conf", True)
         self.declare_parameter("result_line_width", 1)
@@ -59,7 +59,7 @@ class TrackerNode(Node):
         self.yolo_model.fuse()
         self.bridge = cv_bridge.CvBridge()
         self.use_segmentation = yolo_model.endswith("-seg.pt")
-
+        print(self.use_segmentation)
         # define input/output topic 
         input_topic = (
             self.get_parameter("input_topic").get_parameter_value().string_value
@@ -95,6 +95,7 @@ class TrackerNode(Node):
             device=device,
             verbose=False,
             retina_masks=True,
+            persist=True
         )
 
         if results is not None:
@@ -104,27 +105,32 @@ class TrackerNode(Node):
             yolo_result_image_msg.header = msg.header
             yolo_result_msg.detections = self.create_detections_array(results)
             yolo_result_image_msg = self.create_result_image(results)
+            
             if self.use_segmentation:
                 yolo_result_msg.masks = self.create_segmentation_masks(results)
             self.results_pub.publish(yolo_result_msg)
             self.result_image_pub.publish(yolo_result_image_msg)
 
     def create_detections_array(self, results):
-
         detections_msg = Detection2DArray()
         bounding_box = results[0].boxes.xywh
         classes = results[0].boxes.cls
         confidence_score = results[0].boxes.conf
-        for bbox, cls, conf in zip(bounding_box, classes, confidence_score):
+        track_ids = []
+        if results[0].boxes.id is not None:
+            track_ids = results[0].boxes.id.tolist()
+        for bbox, cls, conf, id_ in zip(bounding_box, classes, confidence_score,track_ids):
             detection = Detection2D()
             detection.bbox.center.position.x = float(bbox[0])
             detection.bbox.center.position.y = float(bbox[1])
             detection.bbox.size_x = float(bbox[2])
             detection.bbox.size_y = float(bbox[3])
             hypothesis = ObjectHypothesisWithPose()
-            hypothesis.hypothesis.class_id = results[0].names.get(int(cls))
+            
+            hypothesis.hypothesis.class_id = results[0].names.get(int(cls)) + str(int(id_))
             hypothesis.hypothesis.score = float(conf)
             detection.results.append(hypothesis)
+            
             detections_msg.detections.append(detection)
         return detections_msg
 
@@ -156,17 +162,21 @@ class TrackerNode(Node):
         result_image_msg = self.bridge.cv2_to_imgmsg(
             plotted_image, encoding="bgr8")
         return result_image_msg
-
-    def create_segmentation_masks(self, rgb_img, results):
+    
+    def create_segmentation_masks(self, results):
         masks_msg = []
-        bbox = results[0].bbox
-        bbox_center = utils.postprocessing.get_incircle_bbox(
-            bbox)['incircle_list'] 
-        sam_result = self.sam_model.predict(
-            rgb_img, 
-            points=bbox_center, bboxes=bbox, labels=[1])[0]
-        result = utils.postprocessing.get_sam_mask(sam_result)
-        masks_msg.append(result.combined_mask)
+        for result in results:
+            if hasattr(result, "masks") and result.masks is not None:
+                for mask_tensor in result.masks:
+                    mask_numpy = (
+                        np.squeeze(mask_tensor.data.to("cpu").detach().numpy()).astype(
+                            np.uint8
+                        )
+                    )
+                    mask_image_msg = self.bridge.cv2_to_imgmsg(
+                        mask_numpy, encoding="passthrough"
+                    )
+                    masks_msg.append(mask_image_msg)
         return masks_msg
 
 def main(args=None):

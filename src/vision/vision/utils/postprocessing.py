@@ -3,6 +3,39 @@ import numpy as np
 import cv2
 from functools import reduce
 from sklearn.preprocessing import StandardScaler
+import open3d as o3d
+import pyrealsense2 as rs
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+from scipy.spatial.transform import Rotation as R
+
+def axis_vectors_to_quaternion(x_axis: np.ndarray, y_axis: np.ndarray, z_axis: np.ndarray) -> np.ndarray:
+    """
+    Convert three axis vectors (x, y, z) representing the orientation into a quaternion.
+
+    Args:
+        x_axis (np.ndarray): The x-axis vector (3D).
+        y_axis (np.ndarray): The y-axis vector (3D).
+        z_axis (np.ndarray): The z-axis vector (3D).
+
+    Returns:
+        np.ndarray: A quaternion representing the orientation [x, y, z, w].
+    """
+    # Ensure the vectors are normalized (unit vectors)
+    x_axis = x_axis / np.linalg.norm(x_axis)
+    y_axis = y_axis / np.linalg.norm(y_axis)
+    z_axis = z_axis / np.linalg.norm(z_axis)
+
+    # Construct the rotation matrix from the axes
+    rotation_matrix = np.column_stack((x_axis, y_axis, z_axis))
+
+    # Convert the rotation matrix to a quaternion
+    rotation = R.from_matrix(rotation_matrix)
+    quaternion = rotation.as_quat()  # [x, y, z, w]
+
+    return quaternion
+
 def find_bbox_center(bbox:list)->list:
     """find bbox center
 
@@ -129,22 +162,46 @@ def mask_to_pc(mask:np.ndarray, depth_img, depth_scale=0.0010000000474974513)->n
     Returns:
         list: _description_
     """
+    depth_intrinsic = rs.pyrealsense2.intrinsics()
+    depth_intrinsic.width = 640
+    depth_intrinsic.height = 480
+    depth_intrinsic.ppx = 331.404
+    depth_intrinsic.ppy = 239.84
+    depth_intrinsic.fx = 607.34
+    depth_intrinsic.fy = 607.415
+    depth_intrinsic.model = rs.pyrealsense2.distortion.inverse_brown_conrady
+    depth_intrinsic.coeffs = [0.0, 0.0, 0.0, 0.0, 0.0]
     seg_pc=[]
-    # Iterate over each pixel in the mask
-    for y in range(mask.shape[0]):
-        for x in range(mask.shape[1]):
-            if mask[y, x] == 1:  # If the mask has detected an object at this pixel
-                # Get the depth value at the pixel (x, y)
-                depth_value = depth_img[y,x]*depth_scale
-                
-                if 0<depth_value <1.4:  # Only consider valid depth values
-                    # Convert the 2D pixel to a 3D point using depth intrinsics
-                    result = rs.rs2_deproject_pixel_to_point(
-                        depth_intrinsics, [x, y], depth_value
-                    )
-                    seg_pc.append(result)
-    
-    return np.asarray(seg_pc)
+    # Convert the mask to a boolean array (True where mask == 1)
+    mask_bool = mask == 1
+
+    # Get the indices of the masked pixels (y, x)
+    y_indices, x_indices = np.nonzero(mask_bool)
+
+    # Get the depth values at the masked pixel locations and scale them
+    depth_values = depth_img[y_indices, x_indices] * depth_scale
+
+    # Filter out invalid depth values
+    valid_depth_mask = (depth_values > 0) & (depth_values < 1)
+    valid_y = y_indices[valid_depth_mask]
+    valid_x = x_indices[valid_depth_mask]
+    valid_depth_values = depth_values[valid_depth_mask]
+
+    # Use rs.rs2_deproject_pixel_to_point to convert pixels to 3D points
+    seg_pc = []
+    for x, y, depth in zip(valid_x, valid_y, valid_depth_values):
+        result = rs.rs2_deproject_pixel_to_point(depth_intrinsic, [x, y], depth)
+        seg_pc.append(result)
+    # Assuming voxel_down_pcd is your point cloud data that you want to downsample and clean
+    # Perform statistical outlier removal on the downsampled point cloud
+    voxel_down_pcd = o3d.geometry.PointCloud()  # Replace with your actual downsampled point cloud
+    voxel_down_pcd.points = o3d.utility.Vector3dVector(seg_pc)  # Use your point data
+    # Apply voxel grid downsampling
+    voxel_size = 0.00005 # Adjust this value according to the density of your point cloud
+    voxel_down_pcd = voxel_down_pcd.voxel_down_sample(voxel_size)
+    # Remove statistical outliers
+    cl, ind = voxel_down_pcd.remove_statistical_outlier(nb_neighbors=40, std_ratio=1.0)
+    return cl
 
 def generate_pc_pose(pc:np.ndarray)->(list,np.ndarray):
     """This function generate the grasp pose from point cloud,

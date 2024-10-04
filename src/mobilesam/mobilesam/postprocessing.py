@@ -72,7 +72,7 @@ def get_ROI_image(img:np.ndarray, mask:np.ndarray)->np.ndarray:
     seg_img = cv2.bitwise_and(img,img,mask=mask)
     return seg_img
 
-def shrunk_mask(mask:np.ndarray)->np.ndarray:
+def shrunk_mask(mask:np.ndarray, iterations=1)->np.ndarray:
     """_summary_
 
     Args:
@@ -82,12 +82,12 @@ def shrunk_mask(mask:np.ndarray)->np.ndarray:
         np.ndarray: shrun mask which is a little smaller
     """
     # Define a kernel (structuring element) for the following operation
-    kernel = np.ones((5, 5), np.uint8)  # 5x5 kernel of ones
+    kernel = np.ones((3, 3), np.uint8)  # 5x5 kernel of ones
     # Perform the opening operation to remove noise
     opened_img = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     opened_img = cv2.morphologyEx(opened_img, cv2.MORPH_OPEN, kernel)
     # Apply erosion to shrink the mask
-    shrunk_mask = cv2.erode(opened_img, kernel, iterations=1)
+    shrunk_mask = cv2.erode(opened_img, kernel, iterations=iterations)
     return shrunk_mask
 
 def get_sam_mask(sam_result)->dict:
