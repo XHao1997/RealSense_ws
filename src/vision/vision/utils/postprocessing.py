@@ -9,6 +9,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+from scipy.spatial import KDTree
 
 def axis_vectors_to_quaternion(x_axis: np.ndarray, y_axis: np.ndarray, z_axis: np.ndarray) -> np.ndarray:
     """
@@ -260,21 +261,24 @@ def generate_pc_pose(pc: np.ndarray):
     
     return centroid_point, pose
 
-# Function to find the nearest k points from multiple midpoints using KDTree
+
+
+# Function to find the nearest k points from multiple midpoints using SciPy's KDTree
 def find_nearest_k_points(kdtree, mid_points, k=50):
+    # Build the KDTree from the given points
     all_nearest_points = []
+
     # Iterate over each midpoint and perform KNN search
     for mid_point, valid_num in zip(mid_points, k):
-        k = np.min([500, int(valid_num)])
-        [_, idx, _] = kdtree.search_knn_vector_3d(mid_point, k)
+        k = np.min([500, int(valid_num/2)])  # Limit k to a maximum of 500 or the number of valid points
+        distances, idx = kdtree.query(mid_point, k=k)  # Perform KNN search
+        
         all_nearest_points.append(idx)  # Append the indices of nearest points
 
     return all_nearest_points
 
 def create_kdtree(point_cloud):
-    
-    kdtree = o3d.geometry.KDTreeFlann(point_cloud)
-    
+    kdtree = KDTree(point_cloud.points)
     return kdtree
 
 def find_valid_pixel_count(masks):

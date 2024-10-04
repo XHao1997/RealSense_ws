@@ -19,7 +19,6 @@ import std_msgs
 from contextlib import contextmanager
 import yaml
 import pyrealsense2 as rs
-
 @contextmanager
 def timer():
     start_time = time.time()
@@ -100,7 +99,7 @@ class DetTF(Node):
         else:
             self.get_logger().info("using yolo-seg")
             sub_list = [self.cam_depth_sub, self.yolo_sub]
-            self.ts = ApproximateTimeSynchronizer(sub_list, queue_size=100, slop=0.001)
+            self.ts = TimeSynchronizer(sub_list, queue_size=1000)
             self.ts.registerCallback(self.det_callback_yolo)
             
         self.bridge = cv_bridge.CvBridge()
@@ -137,7 +136,7 @@ class DetTF(Node):
 
         for mask in msg2.masks:
             # Convert the ROS Image message to an OpenCV image
-            post_mask = postprocessing.shrunk_mask(self.bridge.imgmsg_to_cv2(mask,desired_encoding='passthrough'),cut_incircle=False)
+            post_mask = postprocessing.shrunk_mask(self.bridge.imgmsg_to_cv2(mask,desired_encoding='passthrough'),cut_incircle=True)
             mask_list.append(post_mask)
         if msg2.detections.detections: # if there is detection
             bbox_centers = [[det.bbox.center.position.x, det.bbox.center.position.y] for det in msg2.detections.detections]
@@ -152,27 +151,28 @@ class DetTF(Node):
             centroid_list = []
             pose_list = []
             pcd_idx = postprocessing.find_nearest_k_points(kdtree, bbox_centers_3d, k=search_num)
-            for i, (mid_point, valid_num) in enumerate(zip(bbox_centers_3d, search_num)):
-                centroid, pose = postprocessing.generate_pc_pose(np.asarray(pcd.points)[pcd_idx[i]])
-                self.get_logger().info(f'Logging NumPy Array: \n{pcd_idx}')
-                t = TransformStamped()
-                t.header.stamp = self.get_clock().now().to_msg()
-                t.header.frame_id = 'camera_color_optical_frame'
-                try:
-                    t.child_frame_id = msg2.detections.detections[i].results[0].hypothesis.class_id
-                except IndexError:
-                    print("Oops!  That was no valid number. index=",i)
-                q = postprocessing.axis_vectors_to_quaternion(pose[0],pose[1],pose[2])
-                centroid_list.append(centroid)
-                pose_list.append(q)
-                t.transform.translation.x = centroid[0]
-                t.transform.translation.y = centroid[1]
-                t.transform.translation.z = centroid[2]
-                t.transform.rotation.w = q[3]
-                t.transform.rotation.x = q[0]
-                t.transform.rotation.y = q[1]
-                t.transform.rotation.z = q[2]
-                self.tf_broadcaster.sendTransform(t)
+            for i, valid_num in enumerate(search_num):
+                if np.max(pcd_idx[i])<len(pcd.points):
+                    centroid, pose = postprocessing.generate_pc_pose(np.asarray(pcd.points)[pcd_idx[i]])
+                    self.get_logger().info(f'Logging NumPy Array: \n{pcd_idx}')
+                    t = TransformStamped()
+                    t.header.stamp = self.get_clock().now().to_msg()
+                    t.header.frame_id = 'camera_color_optical_frame'
+                    try:
+                        t.child_frame_id = msg2.detections.detections[i].results[0].hypothesis.class_id
+                    except IndexError:
+                        print("Oops!  That was no valid number. index=",i)
+                    q = postprocessing.axis_vectors_to_quaternion(pose[0],pose[1],pose[2])
+                    centroid_list.append(centroid)
+                    pose_list.append(q)
+                    t.transform.translation.x = centroid[0]
+                    t.transform.translation.y = centroid[1]
+                    t.transform.translation.z = centroid[2]
+                    t.transform.rotation.w = q[3]
+                    t.transform.rotation.x = q[0]
+                    t.transform.rotation.y = q[1]
+                    t.transform.rotation.z = q[2]
+                    self.tf_broadcaster.sendTransform(t)
             
 
 
