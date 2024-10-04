@@ -22,7 +22,9 @@ def generate_launch_description():
                 'rgb_camera.color_profile': '640x480x60',
                 'enable_depth': 'True',
                 'enable_color': 'True',
-                'clip_distance': '1.5' 
+                'clip_distance': '1.5', 
+                'pointcloud.enable':'true',
+                'align_depth.enable':'true'
             }.items()
     )
     

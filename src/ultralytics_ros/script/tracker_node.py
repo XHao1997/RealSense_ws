@@ -36,7 +36,7 @@ import utils.postprocessing
 class TrackerNode(Node):
     def __init__(self):
         super().__init__("tracker_node")
-        self.declare_parameter("yolo_model", "best.pt")
+        self.declare_parameter("yolo_model", "best-seg.pt")
         self.declare_parameter("sam_model", "sam_l.pt")
         self.declare_parameter("input_topic", "camera/camera/color/image_raw")
         self.declare_parameter("result_topic", "yolo_result")

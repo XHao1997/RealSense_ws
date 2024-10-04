@@ -72,7 +72,7 @@ def get_ROI_image(img:np.ndarray, mask:np.ndarray)->np.ndarray:
     seg_img = cv2.bitwise_and(img,img,mask=mask)
     return seg_img
 
-def shrunk_mask(mask:np.ndarray, iterations=1)->np.ndarray:
+def shrunk_mask(mask:np.ndarray, iterations=1, cut_incircle=True)->np.ndarray:
     """_summary_
 
     Args:
@@ -86,9 +86,36 @@ def shrunk_mask(mask:np.ndarray, iterations=1)->np.ndarray:
     # Perform the opening operation to remove noise
     opened_img = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     opened_img = cv2.morphologyEx(opened_img, cv2.MORPH_OPEN, kernel)
+    if cut_incircle:
+        opened_img = get_incircle_mask(opened_img)
     # Apply erosion to shrink the mask
-    shrunk_mask = cv2.erode(opened_img, kernel, iterations=iterations)
+    shrunk_mask = cv2.erode(opened_img, kernel, iterations=iterations)  
     return shrunk_mask
+
+def get_incircle_mask(mask: np.ndarray) -> np.ndarray:
+    """Get the incircle of a binary mask.
+
+    Args:
+        mask (np.ndarray): Binary mask image (1 channel).
+
+    Returns:
+        np.ndarray: Binary mask containing the largest inscribed circle.
+    """
+    # Find contours of the mask
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if len(contours) == 0:
+        return np.zeros_like(mask)  # Return an empty mask if no contours found
+    # Get the largest contour
+    largest_contour = max(contours, key=cv2.contourArea)
+    # Get the minimum enclosing circle of the largest contour
+    (x, y), radius = cv2.minEnclosingCircle(largest_contour)
+    center = (int(x), int(y))
+    radius = int(radius)
+    # Create a new mask for the incircle
+    incircle_mask = np.zeros_like(mask)
+    cv2.circle(incircle_mask, center, radius, 1, thickness=-1)  # Fill the circle with 1s
+    return incircle_mask
 
 def get_sam_mask(sam_result)->dict:
     """get the segmentation mask from SAM result
