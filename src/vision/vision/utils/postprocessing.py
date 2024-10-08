@@ -27,7 +27,22 @@ def axis_vectors_to_quaternion(x_axis: np.ndarray, y_axis: np.ndarray, z_axis: n
     x_axis = x_axis / np.linalg.norm(x_axis)
     y_axis = y_axis / np.linalg.norm(y_axis)
     z_axis = z_axis / np.linalg.norm(z_axis)
-
+    # Check if the Z-axis is facing toward the frame (positive Z direction)
+    if z_axis[2] < 0:
+        # Flip the Z-axis
+        z_axis = -z_axis
+        # To maintain a right-handed coordinate system, flip the Y-axis as well
+        y_axis = -y_axis
+        x_axis = -x_axis
+    
+    # Check if the X-axis is facing left (negative X direction)
+    if x_axis[0] < 0:
+        
+        # Flip the Z-axis
+        x_axis = -x_axis
+        # To maintain a right-handed coordinate system, flip the Y-axis as well
+        y_axis = -y_axis
+        
     # Construct the rotation matrix from the axes
     rotation_matrix = np.column_stack((x_axis, y_axis, z_axis))
 
@@ -151,7 +166,8 @@ def get_incircle_mask(mask: np.ndarray) -> np.ndarray:
         return np.zeros_like(mask)  # Return an empty mask if no contours found
     distance = cv2.distanceTransform(mask, cv2.DIST_L2, cv2.DIST_MASK_PRECISE)
     _, max_val, _, centre = cv2.minMaxLoc(distance)
-    radius = int(max_val*0.9)
+    radius = int(max_val * 0.8)
+    radius = 5 if radius < 10 else radius
     # Create a new mask for the incircle
     cv2.circle(incircle_mask, centre, radius, 1, thickness=-1)  # Fill the circle with 1s
     return incircle_mask
@@ -220,7 +236,7 @@ def mask_to_pc(mask:np.ndarray, depth_img, intrinsic, depth_scale=0.001000000047
     depth_values = depth_img[y_indices, x_indices] * depth_scale
 
     # Filter out invalid depth values
-    valid_depth_mask = (depth_values > 0) & (depth_values < 1)
+    valid_depth_mask = (depth_values > 0) & (depth_values < 1.5)
     valid_y = y_indices[valid_depth_mask]
     valid_x = x_indices[valid_depth_mask]
     valid_depth_values = depth_values[valid_depth_mask]
@@ -234,11 +250,11 @@ def mask_to_pc(mask:np.ndarray, depth_img, intrinsic, depth_scale=0.001000000047
     pcd = o3d.geometry.PointCloud()  # Replace with your actual downsampled point cloud
     pcd.points = o3d.utility.Vector3dVector(seg_pc)  # Use your point data
     # # Apply voxel grid downsampling
-    # voxel_size = 0.005 # Adjust this value according to the density of your point cloud
-    # voxel_down_pcd = voxel_down_pcd.voxel_down_sample(voxel_size)
+    voxel_size = 0.001 # Adjust this value according to the density of your point cloud
+    voxel_down_pcd = pcd.voxel_down_sample(voxel_size)
     # # Remove statistical outliers
     # cl, ind = voxel_down_pcd.remove_statistical_outlier(nb_neighbors=50, std_ratio=0.2)
-    return pcd
+    return voxel_down_pcd
 
 def generate_pc_pose(pc: np.ndarray):
     if pc.shape[0] <= 3:
@@ -270,8 +286,8 @@ def find_nearest_k_points(kdtree, mid_points, k=50):
 
     # Iterate over each midpoint and perform KNN search
     for mid_point, valid_num in zip(mid_points, k):
-        k = np.min([500, int(valid_num/2)])  # Limit k to a maximum of 500 or the number of valid points
-        distances, idx = kdtree.query(mid_point, k=k)  # Perform KNN search
+        k = np.max([50, int(valid_num/5)])  # Limit k to a maximum of 500 or the number of valid points
+        distances, idx = kdtree.query(mid_point, k=k, workers=6)  # Perform KNN search
         
         all_nearest_points.append(idx)  # Append the indices of nearest points
 

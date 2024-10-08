@@ -21,6 +21,7 @@ setup(
     entry_points={
         'console_scripts': [
             'det_tf = vision.det_tf:main',
+            'det_tf_pc = vision.det_tf_pc:main',
         ],
     },
 )
