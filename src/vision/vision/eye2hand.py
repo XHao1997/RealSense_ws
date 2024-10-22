@@ -36,6 +36,8 @@ class FramePublisher(Node):
         to_frame = 'camera_depth_frame'
         try:
             # Look up the transform with a timeout
+            future = self.tf_buffer.wait_for_transform_async(to_frame,from_frame,Time())
+            rclpy.spin_until_future_complete(self, future)
             transform = self.tf_buffer.lookup_transform(
                 to_frame,
                 from_frame,
