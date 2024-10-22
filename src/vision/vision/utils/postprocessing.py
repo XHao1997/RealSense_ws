@@ -32,8 +32,8 @@ def axis_vectors_to_quaternion(x_axis: np.ndarray, y_axis: np.ndarray, z_axis: n
         # Flip the Z-axis
         z_axis = -z_axis
         # To maintain a right-handed coordinate system, flip the Y-axis as well
-        y_axis = -y_axis
-        x_axis = -x_axis
+        y_axis = y_axis
+        x_axis = x_axis
     
     # Check if the X-axis is facing left (negative X direction)
     if x_axis[0] < 0:

@@ -22,6 +22,7 @@ setup(
         'console_scripts': [
             'det_tf = vision.det_tf:main',
             'det_tf_pc = vision.det_tf_pc:main',
+            'eye2hand = vision.eye2hand:main',
         ],
     },
 )

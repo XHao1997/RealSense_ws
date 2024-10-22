@@ -130,6 +130,7 @@ class DetTF(Node):
                 t.transform.rotation.z = q[2]
                 self.tf_broadcaster.sendTransform(t)
         return
+    
     def det_callback_yolo(self,  msg1:Image, msg2:YoloResult):
         depth_img = self.bridge.imgmsg_to_cv2(msg1, desired_encoding='passthrough')
         mask_list = []
@@ -175,31 +176,6 @@ class DetTF(Node):
                     self.tf_broadcaster.sendTransform(t)
             
 
-
-            # for i, mask in enumerate(mask_list):
-            #     pcd_leaf =postprocessing.mask_to_pc(postprocessing.shrunk_mask(mask), depth_img, self.color_intrinsic)
-            #     if len(pcd_leaf.points)!=0:      
-            #         # Generate the pose (centroid and orientation) from the point cloud
-            #         centroid, pose = postprocessing.generate_pc_pose(np.asarray(pcd_leaf.points))
-            #         t = TransformStamped()
-            #         t.header.stamp = self.get_clock().now().to_msg()
-            #         t.header.frame_id = 'camera_color_optical_frame'
-            #         try:
-            #             t.child_frame_id = msg2.detections.detections[i].results[0].hypothesis.class_id
-            #         except IndexError:
-            #             print("Oops!  That was no valid number. index=",i)
-            #         q = postprocessing.axis_vectors_to_quaternion(pose[0],pose[1],pose[2])
-            #         centroid_list.append(centroid)
-            #         pose_list.append(q)
-            #         t.transform.translation.x = centroid[0]
-            #         t.transform.translation.y = centroid[1]
-            #         t.transform.translation.z = centroid[2]
-            #         t.transform.rotation.w = q[3]
-            #         t.transform.rotation.x = q[0]
-            #         t.transform.rotation.y = q[1]
-            #         t.transform.rotation.z = q[2]
-            #         self.tf_broadcaster.sendTransform(t)
-            # finally publish the next view
             next_centoid = np.mean(np.asarray(centroid_list).reshape(-1,3),axis=0)
             next_veiw = np.mean(np.asarray(pose_list).reshape(-1,4),axis=0)
             t = TransformStamped()

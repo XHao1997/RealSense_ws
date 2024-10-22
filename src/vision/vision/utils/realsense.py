@@ -24,7 +24,7 @@ def Initialize_stream():
         rs.stream.depth, 640, 480, rs.format.z16, 30)
     config.enable_stream(
         rs.stream.color, 640, 480, rs.format.bgr8, 30)
-    profile, pipeline.start(config)
+    profile =  pipeline.start(config)
     return pipeline, profile
 
 def align_depth_to_color(pipeline):
